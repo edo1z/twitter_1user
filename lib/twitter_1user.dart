@@ -6,18 +6,22 @@ import 'package:crypto/crypto.dart';
 
 class Twitter {
   static const String _baseUrl = 'https://api.twitter.com/1.1/';
-  final Map<String, String> authData = {};
-  final String api_secret, access_secret;
+  final String api_key, api_secret, access_token, access_secret;
+  Map<String, String> authData;
 
-  Twitter(api_key, this.api_secret, access_token, this.access_secret) {
+  Twitter(this.api_key, this.api_secret, this.access_token, this.access_secret);
+
+  void initAuthData(api_key, access_token) {
+    authData = {};
     authData['oauth_consumer_key'] = api_key;
     authData['oauth_token'] = access_token;
     authData['oauth_signature_method'] = 'HMAC-SHA1';
     authData['oauth_version'] = '1.0';
   }
 
-  Future<String> request(String method, String path,
-      Map<String, String> requestData) async {
+  Future<String> request(
+      String method, String path, Map<String, String> requestData) async {
+    initAuthData(this.api_key, this.access_token);
     final String url = _baseUrl + path;
     method = method.toUpperCase();
     authData['oauth_timestamp'] = _timestamp();
@@ -30,20 +34,22 @@ class Twitter {
   Future<String> _request(String method, String url, String authHeader,
       Map<String, String> data) async {
     final List<String> list =
-    data.keys.map((key) => "$key=${_per(data[key])}").toList();
+        data.keys.map((key) => "$key=${_per(data[key])}").toList();
     String queryString = list.join('&');
     if (method == 'GET') url += '?' + queryString;
-    final HttpClient http = new HttpClient();
+    final HttpClient client = new HttpClient();
     final HttpClientRequest request =
-    await http.openUrl(method, Uri.parse(url));
+        await client.openUrl(method, Uri.parse(url));
     request.headers
       ..contentType = new ContentType('application', 'x-www-form-urlencoded',
           charset: "utf-8")
-      ..add("Authorization", authHeader);
+      ..add("Authorization", authHeader)
+      ..add('Connection', 'close');
     if (method == 'POST') request.write(queryString);
-    final HttpClientResponse response = await request.close().whenComplete(
-        http.close);
-    return response.transform(utf8.decoder).join("");
+    final HttpClientResponse response = await request.close();
+    String result = await response.transform(utf8.decoder).join("");
+    client.close(force: true);
+    return result;
   }
 
   String _nonce() {
@@ -52,21 +58,19 @@ class Twitter {
     return base64Encode(values).replaceAll(new RegExp('[=/+]'), '');
   }
 
-  String _signature(String method, String url,
-      Map<String, String> requestData) {
+  String _signature(
+      String method, String url, Map<String, String> requestData) {
     Map<String, String> data = {...authData, ...requestData};
     List<String> list = data.keys
         .map((key) => "${_per(key)}=${_per(data[key])}")
         .toList()
-      ..sort();
+          ..sort();
     String parameters = _per(list.join('&'));
     String signatureBaseString = "$method&${_per(url)}&$parameters";
     String signatureKey = "${_per(api_secret)}&${_per(access_secret)}";
     Hmac hmacSha1 = new Hmac(sha1, utf8.encode(signatureKey));
     List<int> signature =
-        hmacSha1
-            .convert(utf8.encode(signatureBaseString))
-            .bytes;
+        hmacSha1.convert(utf8.encode(signatureBaseString)).bytes;
     return base64.encode(signature);
   }
 

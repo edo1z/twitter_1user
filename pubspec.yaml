@@ -1,5 +1,5 @@
 name: twitter_1user
-description: Twitter OAuth library for single user. For Dart.
+description: Connect to Twitter API with OAuth1.0a. The access token is assumed to be obtained from the Twitter application details page. It is therefore ideal for single user applications.
 version: 1.0.0
 homepage: https://github.com/edo1z/twitter_1user
 author: edo1z <endo.yuta@logicky.com>
