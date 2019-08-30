@@ -1,6 +1,6 @@
 name: twitter_1user
 description: Connect to Twitter API with OAuth1.0a. The access token is assumed to be obtained from the Twitter application details page. It is therefore ideal for single user applications.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/edo1z/twitter_1user
 author: edo1z <endo.yuta@logicky.com>
 
